@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HỌC TOÁN CÙNG THẦY THẮNG - CÁC SỐ ĐẶC TRƯNG ĐO MỨC ĐỘ PHÂN TÁN</title>
+    
+    <!-- Tailwind CSS (Giao diện hiện đại) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js (Vẽ đồ thị) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- MathJax (Render LaTeX trực tiếp sang HTML mượt mà) -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['[', ']']],
+                processEscapes: true
+            },
+            chtml: {
+                fontURL: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2'
+            }
+        };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+    
+    <style>
+        .table-container::-webkit-scrollbar { height: 8px; }
+        .table-container::-webkit-scrollbar-thumb { background: #10b981; border-radius: 4px; }
+        .math-scroll { overflow-x: auto; padding-bottom: 8px; }
+        
+        /* Chống gãy dòng cho các thẻ chứa công thức Toán */
+        mjx-container {
+            display: inline-block !important;
+            margin: 0 !important;
+        }
+        mjx-container[display="true"] {
+            display: block !important;
+            margin: 1em 0 !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen p-2 md:p-6">
+
+    <!-- Giao diện mở rộng tối đa trên màn hình -->
+    <div class="max-w-7xl mx-auto space-y-6">
+        
+        <!-- Header -->
+        <div class="text-center bg-white p-6 rounded-xl shadow-sm border-t-4 border-emerald-500">
+            <h1 class="text-3xl font-bold text-emerald-700 uppercase">HỌC TOÁN CÙNG THẦY THẮNG</h1>
+            <p class="text-lg text-gray-600 mt-2 font-medium">CÁC SỐ ĐẶC TRƯNG ĐO MỨC ĐỘ PHÂN TÁN CỦA MẪU SỐ LIỆU GHÉP NHÓM</p>
+        </div>
+
+        <!-- Khu vực Nhập liệu Trực tiếp -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4 border-b pb-3">
+                <h2 class="text-xl font-semibold text-emerald-700 mb-2 md:mb-0">Nhập bảng số liệu ghép nhóm</h2>
+                <!-- Nút Xóa dữ liệu bài toán -->
+                <button onclick="resetData()" class="px-4 py-2 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 font-medium transition flex items-center">
+                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    Xóa bài toán
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <p class="text-sm font-medium text-gray-700">Điền các giới hạn khoảng $[a_i; a_{i+1})$ và tần số $m_i$ tương ứng (sử dụng dấu chấm hoặc phẩy đều được):</p>
+                
+                <div class="table-container overflow-x-auto pb-2">
+                    <table class="w-full text-center border-collapse whitespace-nowrap" id="dataTable">
+                        <thead>
+                            <tr class="bg-emerald-100" id="row-intervals">
+                                <th class="border border-emerald-200 p-3 text-emerald-800 text-sm font-semibold min-w-[160px]">Nhóm $[a_i; a_{i+1})$</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr id="row-frequencies">
+                                <td class="border border-emerald-200 p-3 font-semibold text-sm bg-emerald-50">Tần số $m_i$</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="flex space-x-3 justify-center mt-4">
+                    <button onclick="addColumn()" class="px-5 py-2 bg-blue-50 text-blue-600 rounded-lg shadow-sm hover:bg-blue-100 font-medium transition flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Thêm cột
+                    </button>
+                    <button onclick="removeColumn()" class="px-5 py-2 bg-red-50 text-red-600 rounded-lg shadow-sm hover:bg-red-100 font-medium transition flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg> Bớt cột
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Khu vực Nút điều khiển (BẬT/TẮT) -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-wrap gap-4 justify-center">
+            <button id="btnSolution" onclick="toggleSolution()" class="px-6 py-3 bg-emerald-600 text-white rounded-lg shadow-md hover:bg-emerald-700 font-semibold transition flex items-center min-w-[200px] justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                <span>Bật Lời giải chi tiết</span>
+            </button>
+            <button id="btnChart" onclick="toggleHistogram()" class="px-6 py-3 bg-indigo-500 text-white rounded-lg shadow-md hover:bg-indigo-600 font-semibold transition flex items-center min-w-[200px] justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                <span>Bật Đồ thị hình cột</span>
+            </button>
+            <button id="btnBoxplot" onclick="toggleBoxplot()" class="px-6 py-3 bg-orange-500 text-white rounded-lg shadow-md hover:bg-orange-600 font-semibold transition flex items-center min-w-[200px] justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+                <span>Bật Mô phỏng Tứ phân vị</span>
+            </button>
+        </div>
+
+        <!-- Khu vực Hiển thị kết quả (Sắp xếp 1 cột dọc, rộng tối đa) -->
+        <div class="flex flex-col space-y-6">
+            
+            <div id="solutionCard" class="hidden bg-white p-6 md:p-10 rounded-xl shadow-sm border border-emerald-200 w-full">
+                <h2 class="text-2xl font-bold text-emerald-700 mb-6 border-b-2 border-emerald-100 pb-3">Lời giải chi tiết</h2>
+                <div id="solutionContent" class="text-gray-800 text-base md:text-lg leading-relaxed space-y-6">
+                </div>
+            </div>
+            
+            <div id="chartCard" class="hidden bg-white p-6 md:p-10 rounded-xl shadow-sm border border-indigo-200 w-full">
+                <h2 class="text-2xl font-semibold text-indigo-700 mb-6 border-b-2 border-indigo-100 pb-3">Đồ thị hình cột (Histogram)</h2>
+                <div class="w-full h-[400px] md:h-[500px]">
+                    <canvas id="histogramChart" class="w-full h-full"></canvas>
+                </div>
+            </div>
+            
+            <div id="boxplotCard" class="hidden bg-white p-6 md:p-10 rounded-xl shadow-sm border border-orange-200 w-full">
+                <h2 class="text-2xl font-semibold text-orange-700 mb-6 border-b-2 border-orange-100 pb-3">Mô phỏng trực quan Tứ phân vị</h2>
+                <div class="flex items-center justify-center h-[300px] md:h-[400px] bg-gray-50 border rounded-lg p-6">
+                    <canvas id="boxplotCanvas" class="w-full h-full"></canvas>
+                </div>
+                <div id="boxplotLegend" class="mt-6 text-base md:text-lg text-gray-700 flex flex-wrap gap-4 justify-between bg-orange-50 p-4 rounded border border-orange-100"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        let colCount = 0;
+        
+        function initTable() {
+            for(let i=0; i<4; i++) addColumn();
+        }
+
+        function addColumn() {
+            colCount++;
+            const rowIntervals = document.getElementById('row-intervals');
+            const rowFrequencies = document.getElementById('row-frequencies');
+            
+            const th = document.createElement('th');
+            th.className = "border border-emerald-200 p-2 min-w-[140px]";
+            th.innerHTML = `
+                <div class="flex items-center justify-center space-x-1">
+                    <span class="text-gray-600 font-normal">[</span>
+                    <input type="text" inputmode="decimal" class="w-16 p-1 border border-gray-300 rounded text-center text-base font-normal val-min focus:ring-2 focus:ring-emerald-400 focus:outline-none" placeholder="a">
+                    <span class="text-gray-600 font-normal">;</span>
+                    <input type="text" inputmode="decimal" class="w-16 p-1 border border-gray-300 rounded text-center text-base font-normal val-max focus:ring-2 focus:ring-emerald-400 focus:outline-none" placeholder="b">
+                    <span class="text-gray-600 font-normal">)</span>
+                </div>
+            `;
+            rowIntervals.appendChild(th);
+
+            const td = document.createElement('td');
+            td.className = "border border-emerald-200 p-2";
+            td.innerHTML = `<input type="text" inputmode="numeric" class="w-full p-2 border border-gray-300 rounded text-center text-base font-semibold val-freq focus:ring-2 focus:ring-emerald-400 focus:outline-none" placeholder="m">`;
+            rowFrequencies.appendChild(td);
+        }
+
+        function removeColumn() {
+            if (colCount <= 1) return; // Luôn giữ lại ít nhất 1 cột nhập liệu
+            document.getElementById('row-intervals').lastElementChild.remove();
+            document.getElementById('row-frequencies').lastElementChild.remove();
+            colCount--;
+        }
+
+        function getTableData() {
+            const mins = document.querySelectorAll('.val-min');
+            const maxs = document.querySelectorAll('.val-max');
+            const freqs = document.querySelectorAll('.val-freq');
+            let data = [];
+            
+            for(let i=0; i<mins.length; i++) {
+                let aStr = mins[i].value.replace(',', '.').trim();
+                let bStr = maxs[i].value.replace(',', '.').trim();
+                let mStr = freqs[i].value.replace(',', '.').trim();
+
+                if(aStr === "" || bStr === "" || mStr === "") continue;
+
+                let a = parseFloat(aStr);
+                let b = parseFloat(bStr);
+                let m = parseFloat(mStr); 
+                
+                if (!isNaN(a) && !isNaN(b) && !isNaN(m)) {
+                    data.push({ a: a, b: b, m: m, x: (a + b) / 2 });
+                }
+            }
+            return data;
+        }
+
+        function resetData() {
+            const rowIntervals = document.getElementById('row-intervals');
+            const rowFrequencies = document.getElementById('row-frequencies');
+            
+            // Dọn sạch hoàn toàn các cột nhập liệu, giữ lại 1 ô Tiêu đề
+            while (rowIntervals.children.length > 1) {
+                rowIntervals.removeChild(rowIntervals.lastChild);
+            }
+            while (rowFrequencies.children.length > 1) {
+                rowFrequencies.removeChild(rowFrequencies.lastChild);
+            }
+            
+            colCount = 0;
+            initTable(); // Tạo lại 4 cột mặc định
+            
+            // Ép ẩn và làm sạch các thẻ kết quả
+            document.getElementById('solutionCard').classList.add('hidden');
+            document.getElementById('chartCard').classList.add('hidden');
+            document.getElementById('boxplotCard').classList.add('hidden');
+            
+            // Khôi phục trạng thái nút bấm
+            stateSolution = false;
+            document.getElementById('btnSolution').classList.replace('bg-emerald-800', 'bg-emerald-600');
+            document.getElementById('btnSolution').querySelector('span').innerText = 'Bật Lời giải chi tiết';
+            
+            stateChart = false;
+            document.getElementById('btnChart').classList.replace('bg-indigo-700', 'bg-indigo-500');
+            document.getElementById('btnChart').querySelector('span').innerText = 'Bật Đồ thị hình cột';
+            
+            stateBoxplot = false;
+            document.getElementById('btnBoxplot').classList.replace('bg-orange-700', 'bg-orange-500');
+            document.getElementById('btnBoxplot').querySelector('span').innerText = 'Bật Mô phỏng Tứ phân vị';
+        }
+
+        function calculateStats(data) {
+            if (data.length === 0) return null;
+
+            let n = data.reduce((sum, item) => sum + item.m, 0);
+            let sum_mx = data.reduce((sum, item) => sum + item.m * item.x, 0);
+            let mean = sum_mx / n;
+            let range = data[data.length - 1].b - data[0].a;
+
+            let sum_mx2 = data.reduce((sum, item) => sum + item.m * Math.pow(item.x, 2), 0);
+            let variance = (sum_mx2 / n) - Math.pow(mean, 2);
+            let stdDev = Math.sqrt(variance);
+
+            function getQuartile(fraction) {
+                let target = fraction * n;
+                let cf = 0; 
+                for (let i = 0; i < data.length; i++) {
+                    let prevCf = cf;
+                    cf += data[i].m;
+                    if (cf >= target) {
+                        let ap = data[i].a;
+                        let bp = data[i].b;
+                        let mp = data[i].m;
+                        return ap + ((target - prevCf) / mp) * (bp - ap);
+                    }
+                }
+                return data[data.length-1].b;
+            }
+
+            let Q1 = getQuartile(1/4);
+            let Q2 = getQuartile(2/4); 
+            let Q3 = getQuartile(3/4);
+            let IQR = Q3 - Q1;
+
+            let lowerBound = Q1 - 1.5 * IQR;
+            let upperBound = Q3 + 1.5 * IQR;
+
+            return { n, mean, range, variance, stdDev, Q1, Q2, Q3, IQR, lowerBound, upperBound };
+        }
+
+        let stateSolution = false;
+        let stateChart = false;
+        let stateBoxplot = false;
+        
+        function formatNum(num) {
+            return Number.isInteger(num) ? num : parseFloat(num.toFixed(4));
+        }
+
+        function toggleSolution() {
+            const btn = document.getElementById('btnSolution');
+            const card = document.getElementById('solutionCard');
+            
+            if (!stateSolution) {
+                const data = getTableData();
+                if(data.length === 0) return alert("Vui lòng nhập đầy đủ số liệu vào bảng!");
+                
+                generateSolutionHTML(data);
+                card.classList.remove('hidden');
+                btn.classList.replace('bg-emerald-600', 'bg-emerald-800');
+                btn.querySelector('span').innerText = 'Tắt Lời giải chi tiết';
+                stateSolution = true;
+            } else {
+                card.classList.add('hidden');
+                btn.classList.replace('bg-emerald-800', 'bg-emerald-600');
+                btn.querySelector('span').innerText = 'Bật Lời giải chi tiết';
+                stateSolution = false;
+            }
+        }
+
+        function toggleHistogram() {
+            const btn = document.getElementById('btnChart');
+            const card = document.getElementById('chartCard');
+            
+            if (!stateChart) {
+                const data = getTableData();
+                if(data.length === 0) return alert("Vui lòng nhập đầy đủ số liệu vào bảng!");
+                
+                drawChartLogic(data);
+                card.classList.remove('hidden');
+                btn.classList.replace('bg-indigo-500', 'bg-indigo-700');
+                btn.querySelector('span').innerText = 'Tắt Đồ thị hình cột';
+                stateChart = true;
+            } else {
+                card.classList.add('hidden');
+                btn.classList.replace('bg-indigo-700', 'bg-indigo-500');
+                btn.querySelector('span').innerText = 'Bật Đồ thị hình cột';
+                stateChart = false;
+            }
+        }
+
+        function toggleBoxplot() {
+            const btn = document.getElementById('btnBoxplot');
+            const card = document.getElementById('boxplotCard');
+            
+            if (!stateBoxplot) {
+                const data = getTableData();
+                if(data.length === 0) return alert("Vui lòng nhập đầy đủ số liệu vào bảng!");
+                
+                card.classList.remove('hidden'); 
+                drawBoxplotLogic(data);
+                
+                btn.classList.replace('bg-orange-500', 'bg-orange-700');
+                btn.querySelector('span').innerText = 'Tắt Tứ phân vị';
+                stateBoxplot = true;
+            } else {
+                card.classList.add('hidden');
+                btn.classList.replace('bg-orange-700', 'bg-orange-500');
+                btn.querySelector('span').innerText = 'Bật Mô phỏng Tứ phân vị';
+                stateBoxplot = false;
+            }
+        }
+
+        function generateSolutionHTML(data) {
+            const stats = calculateStats(data);
+            const solutionDiv = document.getElementById('solutionContent');
+            
+            let tableHTML = `
+            <div class="overflow-x-auto my-6 flex justify-center">
+                <table class="min-w-full md:min-w-[80%] text-center border-collapse border border-emerald-300 shadow-sm">
+                    <thead class="bg-emerald-100">
+                        <tr>
+                            <th class="border border-emerald-300 p-3 md:p-4 text-emerald-800 font-bold">Nhóm</th>
+                            <th class="border border-emerald-300 p-3 md:p-4 text-emerald-800 font-bold">Giá trị đại diện ($x_i$)</th>
+                            <th class="border border-emerald-300 p-3 md:p-4 text-emerald-800 font-bold">Tần số ($m_i$)</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            data.forEach(item => {
+                tableHTML += `
+                        <tr>
+                            <td class="border border-emerald-300 p-3 text-lg">$[${item.a}; ${item.b})$</td>
+                            <td class="border border-emerald-300 p-3 text-lg">${item.x}</td>
+                            <td class="border border-emerald-300 p-3 text-lg">${item.m}</td>
+                        </tr>`;
+            });
+            tableHTML += `
+                        <tr class="bg-emerald-50">
+                            <td class="border border-emerald-300 p-3 font-bold text-center text-lg text-gray-800" colspan="2">CỠ MẪU ($n$)</td>
+                            <td class="border border-emerald-300 p-3 text-xl font-bold text-emerald-700">$n = ${stats.n}$</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>`;
+
+            let htmlString = `
+                <div class="mb-10">
+                    <h3 class="text-2xl font-bold text-emerald-800 mb-3">1. Bảng số liệu có giá trị đại diện và tần số</h3>
+                    <p class="mb-2 text-lg">Giá trị đại diện của nhóm $[a_i; a_{i+1})$ được tính theo công thức: $x_i = \\frac{a_i + a_{i+1}}{2}$.</p>
+                    ${tableHTML}
+                </div>
+
+                <div class="mb-10">
+                    <h3 class="text-2xl font-bold text-emerald-800 mb-3">2. Số trung bình</h3>
+                    <p class="mb-3 text-lg">Số trung bình của mẫu số liệu ghép nhóm là:</p>
+                    <div class="math-scroll p-6 bg-gray-50 rounded-xl border border-gray-200 text-lg">
+                        $$ \\overline{x} = \\frac{m_1x_1 + ... + m_kx_k}{n} = \\frac{${data.map(item => `${item.m} \\times${item.x}`).join(' + ')}}{${stats.n}} \\approx ${formatNum(stats.mean)} $$
+                    </div>
+                </div>
+
+                <div class="mb-10">
+                    <h3 class="text-2xl font-bold text-emerald-800 mb-3">3. Khoảng biến thiên</h3>
+                    <p class="mb-3 text-lg">Khoảng biến thiên của mẫu số liệu ghép nhóm là giới hạn trên của nhóm cuối cùng trừ đi giới hạn dưới của nhóm đầu tiên:</p>
+                    <div class="math-scroll p-6 bg-gray-50 rounded-xl border border-gray-200 text-lg">
+                        $$ R = a_{k+1} - a_1 = ${data[data.length-1].b} - ${data[0].a} = ${formatNum(stats.range)} $$
+                    </div>
+                </div>
+
+                <div class="mb-10">
+                    <h3 class="text-2xl font-bold text-emerald-800 mb-5">4. Tứ phân vị và Khoảng tứ phân vị</h3>
+                    <p class="mb-5 font-semibold text-xl text-emerald-700 bg-emerald-50 inline-block px-4 py-2 rounded">Cỡ mẫu $n = ${stats.n}$</p>
+                    
+                    <div class="space-y-8">
+                        <div class="pl-5 border-l-4 border-emerald-400">
+                            <p class="font-bold text-gray-800 text-xl mb-3">🔹 Tứ phân vị thứ nhất ($Q_1$):</p>
+                            <p class="text-lg">Vị trí $\\frac{n}{4} = \\frac{${stats.n}}{4} = ${formatNum(stats.n/4)}$.</p>
+                            <p class="mb-3 text-lg">Nhóm chứa $Q_1$ được xác định dựa vào tần số tích lũy. Áp dụng công thức nội suy:</p>
+                            <div class="math-scroll">
+                                $$ Q_1 = a_p + \\frac{\\frac{n}{4} - cf_{p-1}}{m_p} \\cdot (a_{p+1} - a_p) \\approx ${formatNum(stats.Q1)} $$
+                            </div>
+                        </div>
+                        
+                        <div class="pl-5 border-l-4 border-emerald-400">
+                            <p class="font-bold text-gray-800 text-xl mb-3">🔹 Tứ phân vị thứ hai / Trung vị ($Q_2$):</p>
+                            <p class="mb-3 text-lg">Vị trí $\\frac{n}{2} = ${formatNum(stats.n/2)}$.</p>
+                            <div class="math-scroll">$$ Q_2 \\approx ${formatNum(stats.Q2)} $$</div>
+                        </div>
+                        
+                        <div class="pl-5 border-l-4 border-emerald-400">
+                            <p class="font-bold text-gray-800 text-xl mb-3">🔹 Tứ phân vị thứ ba ($Q_3$):</p>
+                            <p class="mb-3 text-lg">Vị trí $\\frac{3n}{4} = ${formatNum(3*stats.n/4)}$. Áp dụng công thức nội suy:</p>
+                            <div class="math-scroll">
+                                $$ Q_3 = a_p + \\frac{\\frac{3n}{4} - cf_{p-1}}{m_p} \\cdot (a_{p+1} - a_p) \\approx ${formatNum(stats.Q3)} $$
+                            </div>
+                        </div>
+                        
+                        <div class="pl-5 border-l-4 border-orange-400 bg-orange-50 p-5 rounded-lg shadow-sm mt-4">
+                            <p class="font-bold text-gray-800 text-xl mb-3">🔸 Khoảng tứ phân vị ($\\Delta_Q$):</p>
+                            <div class="math-scroll">
+                                $$ \\Delta_Q = Q_3 - Q_1 = ${formatNum(stats.Q3)} - ${formatNum(stats.Q1)} = ${formatNum(stats.IQR)} $$
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-10">
+                    <h3 class="text-2xl font-bold text-emerald-800 mb-3">5. Giá trị ngoại lệ (Nếu có)</h3>
+                    <p class="mb-3 text-lg">Các giá trị ngoại lệ của mẫu số liệu (nếu có) nằm ngoài khoảng:</p>
+                    <div class="math-scroll p-6 bg-gray-50 rounded-xl border border-gray-200 mb-3 text-lg">
+                        $$ [Q_1 - 1.5\\Delta_Q ; Q_3 + 1.5\\Delta_Q] = [${formatNum(stats.lowerBound)} ; ${formatNum(stats.upperBound)}] $$
+                    </div>
+                    <p class="italic text-gray-600 text-lg">👉 (Các giá trị nhỏ hơn ${formatNum(stats.lowerBound)} hoặc lớn hơn ${formatNum(stats.upperBound)} được xem là giá trị ngoại lệ bất thường).</p>
+                </div>
+
+                <div class="mb-4">
+                    <h3 class="text-2xl font-bold text-emerald-800 mb-6">6. Phương sai và Độ lệch chuẩn</h3>
+                    
+                    <div class="pl-5 border-l-4 border-emerald-400 mb-8">
+                        <p class="font-bold text-gray-800 text-xl mb-3">🔹 Phương sai ($s^2$):</p>
+                        <p class="mb-3 text-lg">Áp dụng công thức khai triển:</p>
+                        <div class="math-scroll">
+                            $$ s^2 = \\frac{1}{n}(m_1x_1^2 + ... + m_kx_k^2) - (\\overline{x})^2 $$
+                        </div>
+                        <div class="math-scroll p-6 bg-gray-50 rounded-xl border border-gray-200 mt-4 text-lg">
+                            $$ s^2 = \\frac{1}{${stats.n}}(${data.map(item => `${item.m}\\cdot${item.x}^2`).join(' + ')}) - (${formatNum(stats.mean)})^2 \\approx ${formatNum(stats.variance)} $$
+                        </div>
+                    </div>
+                    
+                    <div class="pl-5 border-l-4 border-indigo-400">
+                        <p class="font-bold text-gray-800 text-xl mb-3">🔹 Độ lệch chuẩn ($s$):</p>
+                        <div class="math-scroll p-6 bg-indigo-50 rounded-xl border border-indigo-200 text-lg">
+                            $$ s = \\sqrt{s^2} = \\sqrt{${formatNum(stats.variance)}} \\approx ${formatNum(stats.stdDev)} $$
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            solutionDiv.innerHTML = htmlString;
+            
+            MathJax.typesetClear([solutionDiv]);
+            MathJax.typesetPromise([solutionDiv]).then(() => {
+                console.log('LaTeX Rendered Successfully!');
+            });
+        }
+
+        let histogramInstance = null;
+        function drawChartLogic(data) {
+            const labels = data.map(d => `[${d.a}; ${d.b})`);
+            const freqs = data.map(d => d.m);
+
+            const ctx = document.getElementById('histogramChart').getContext('2d');
+            if (histogramInstance) histogramInstance.destroy();
+            
+            histogramInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Tần số',
+                        data: freqs,
+                        backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                        borderColor: 'rgba(5, 150, 105, 1)',
+                        borderWidth: 1,
+                        barPercentage: 1.0,
+                        categoryPercentage: 1.0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, 
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            title: { display: true, text: 'Tần số (m)', font: { size: 16 } },
+                            ticks: { font: { size: 14 } }
+                        },
+                        x: { 
+                            title: { display: true, text: 'Mẫu số liệu ghép nhóm', font: { size: 16 } },
+                            ticks: { font: { size: 14 } }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function drawBoxplotLogic(data) {
+            const stats = calculateStats(data);
+            const canvas = document.getElementById('boxplotCanvas');
+            
+            const parent = canvas.parentElement;
+            canvas.width = parent.clientWidth - 48; 
+            canvas.height = parent.clientHeight - 48;
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const minVal = data[0].a;
+            const maxVal = data[data.length-1].b;
+            
+            const padding = 60; 
+            const width = canvas.width - padding * 2;
+            const yCenter = canvas.height / 2;
+            
+            function getX(val) {
+                return padding + ((val - minVal) / (maxVal - minVal)) * width;
+            }
+
+            const xMin = getX(minVal);
+            const xMax = getX(maxVal);
+            const xQ1 = getX(stats.Q1);
+            const xQ2 = getX(stats.Q2);
+            const xQ3 = getX(stats.Q3);
+
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = "#4b5563"; 
+            
+            ctx.beginPath();
+            ctx.moveTo(xMin, yCenter); ctx.lineTo(xQ1, yCenter);
+            ctx.moveTo(xQ3, yCenter); ctx.lineTo(xMax, yCenter);
+            ctx.stroke();
+
+            const boxHeight = 100;
+            ctx.fillStyle = "rgba(249, 115, 22, 0.5)"; 
+            ctx.fillRect(xQ1, yCenter - (boxHeight/2), xQ3 - xQ1, boxHeight);
+            ctx.strokeRect(xQ1, yCenter - (boxHeight/2), xQ3 - xQ1, boxHeight);
+
+            function drawVertical(x, h, color, weight) {
+                ctx.beginPath(); ctx.lineWidth = weight; ctx.strokeStyle = color; 
+                ctx.moveTo(x, yCenter - h); ctx.lineTo(x, yCenter + h); ctx.stroke();
+            }
+            drawVertical(xMin, boxHeight/2.5, "#4b5563", 4); 
+            drawVertical(xMax, boxHeight/2.5, "#4b5563", 4); 
+            drawVertical(xQ2, boxHeight/2, "#dc2626", 5);  
+
+            ctx.fillStyle = "#1f2937";
+            ctx.font = "bold 16px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText(minVal, xMin, yCenter + (boxHeight/2) + 25);
+            ctx.fillText(maxVal, xMax, yCenter + (boxHeight/2) + 25);
+            
+            ctx.fillStyle = "#ea580c";
+            ctx.fillText(formatNum(stats.Q1), xQ1, yCenter - (boxHeight/2) - 15);
+            ctx.fillText(formatNum(stats.Q3), xQ3, yCenter - (boxHeight/2) - 15);
+            
+            ctx.fillStyle = "#dc2626";
+            ctx.fillText("Q2", xQ2, yCenter - (boxHeight/2) - 15);
+
+            document.getElementById('boxplotLegend').innerHTML = `
+                <div><span class="font-bold text-gray-700">Min:</span> ${minVal}</div>
+                <div><span class="font-bold text-orange-600">Q1:</span> ${formatNum(stats.Q1)}</div>
+                <div><span class="font-bold text-red-600">Q2 (Trung vị):</span> ${formatNum(stats.Q2)}</div>
+                <div><span class="font-bold text-orange-600">Q3:</span> ${formatNum(stats.Q3)}</div>
+                <div><span class="font-bold text-gray-700">Max:</span> ${maxVal}</div>
+            `;
+        }
+
+        window.addEventListener('resize', () => {
+            if(stateBoxplot) drawBoxplotLogic(getTableData());
+        });
+
+        // Sử dụng DOMContentLoaded thay cho window.onload để 100% không bị kẹt hiển thị
+        document.addEventListener('DOMContentLoaded', initTable);
+    </script>
+</body>
+</html>
