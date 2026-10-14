@@ -27,6 +27,19 @@
     <script type="text/javascript" id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
     
     <style>
+        /* BẢO VỆ GIAO DIỆN: Ngăn người dùng bôi đen văn bản */
+        body {
+            -webkit-user-select: none; /* Safari */
+            -ms-user-select: none; /* IE 10 and IE 11 */
+            user-select: none; /* Chuẩn chung */
+        }
+        /* Ngoại trừ các ô nhập liệu vẫn cho phép bôi đen để gõ số */
+        input, textarea {
+            -webkit-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+
         .table-container::-webkit-scrollbar { height: 8px; }
         .table-container::-webkit-scrollbar-thumb { background: #10b981; border-radius: 4px; }
         .math-scroll { overflow-x: auto; padding-bottom: 8px; }
@@ -141,6 +154,48 @@
     </div>
 
     <script>
+        // ==========================================
+        // BẢO VỆ CODE & GIAO DIỆN (CHỐNG SAO CHÉP)
+        // ==========================================
+        
+        // 1. Chặn click chuột phải
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
+        // 2. Chặn các phím tắt công cụ lập trình và phím tắt copy/save
+        document.addEventListener('keydown', (e) => {
+            // Chặn F12
+            if (e.key === 'F12') {
+                e.preventDefault();
+                return false;
+            }
+            // Chặn Ctrl+Shift+I, Ctrl+Shift+J (Mở Inspect)
+            if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) {
+                e.preventDefault();
+                return false;
+            }
+            // Chặn Ctrl+U (Xem Source code)
+            if (e.ctrlKey && (e.key === 'U' || e.key === 'u')) {
+                e.preventDefault();
+                return false;
+            }
+            // Chặn Ctrl+S (Lưu trang web)
+            if (e.ctrlKey && (e.key === 'S' || e.key === 's')) {
+                e.preventDefault();
+                return false;
+            }
+            // Chặn Ctrl+C, Ctrl+X (Copy, Cut) NGOẠI TRỪ khi người dùng đang ở trong ô nhập liệu
+            if (e.ctrlKey && (e.key === 'C' || e.key === 'c' || e.key === 'X' || e.key === 'x')) {
+                if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+        });
+
+
+        // ==========================================
+        // CÁC HÀM XỬ LÝ GIAO DIỆN & TOÁN HỌC
+        // ==========================================
         let colCount = 0;
         
         function initTable() {
@@ -233,22 +288,17 @@
             document.getElementById('btnBoxplot').querySelector('span').innerText = 'Bật Mô phỏng Tứ phân vị';
         }
 
-        // ===================================================================
-        // TÍNH TOÁN CÁC SỐ ĐẶC TRƯNG THEO ĐÚNG CHUẨN SGK KẾT NỐI TRI THỨC 12
-        // ===================================================================
         function calculateStats(data) {
             if (data.length === 0) return null;
 
-            // --- BƯỚC FIX LỖI m1 > 0 và mk > 0 ---
             // Tìm nhóm hợp lệ đầu tiên và cuối cùng có m > 0 để tính khoảng biến thiên
             let firstIdx = 0;
             let lastIdx = data.length - 1;
             while (firstIdx < data.length && data[firstIdx].m === 0) firstIdx++;
             while (lastIdx >= 0 && data[lastIdx].m === 0) lastIdx--;
 
-            if (firstIdx > lastIdx) return null; // Bảng toàn m=0 (Rất hiếm gặp)
+            if (firstIdx > lastIdx) return null; 
 
-            // Dữ liệu dùng để tính Khoảng biến thiên
             let k_thuc_te = lastIdx - firstIdx + 1;
             let a1 = data[firstIdx].a;
             let ak_plus_1 = data[lastIdx].b;
@@ -256,10 +306,8 @@
             let mk = data[lastIdx].m;
             let range = ak_plus_1 - a1;
 
-            // Tính cỡ mẫu n = m_1 + ... + m_k trên toàn bộ dữ liệu người nhập
             let n = data.reduce((sum, item) => sum + item.m, 0);
 
-            // Mảng tần số tích lũy cf
             let cf = [];
             let currentCf = 0;
             for (let i = 0; i < data.length; i++) {
@@ -267,16 +315,13 @@
                 cf.push(currentCf);
             }
             
-            // 1. Số trung bình
             let sum_mx = data.reduce((sum, item) => sum + item.m * item.x, 0);
             let mean = sum_mx / n;
 
-            // 3. Phương sai & Độ lệch chuẩn
             let sum_mx2 = data.reduce((sum, item) => sum + item.m * Math.pow(item.x, 2), 0);
             let variance = (sum_mx2 / n) - Math.pow(mean, 2);
             let stdDev = Math.sqrt(variance);
 
-            // Hàm xác định nhóm chứa và tính Tứ phân vị
             function getQuartileDetails(targetFraction, targetLabel) {
                 let target = targetFraction * n;
                 let groupIndex = -1;
@@ -293,7 +338,6 @@
                 let mp = data[groupIndex].m;
                 let prevCf = groupIndex > 0 ? cf[groupIndex - 1] : 0;
                 
-                // Chống chia cho 0 nếu nhóm có m = 0 (dù theo lý thuyết cf[i] >= target sẽ không dừng ở m=0 trừ khi dính boundary)
                 let value = ap; 
                 if (mp > 0) {
                     value = ap + ((target - prevCf) / mp) * (ap_plus_1 - ap);
@@ -301,7 +345,7 @@
 
                 return {
                     target: target,
-                    groupIndex: groupIndex + 1, // Thứ tự nhóm hiển thị (1-based)
+                    groupIndex: groupIndex + 1,
                     groupInterval: `[${ap}; ${ap_plus_1})`,
                     ap: ap,
                     ap_plus_1: ap_plus_1,
@@ -312,7 +356,7 @@
             }
 
             let Q1_info = getQuartileDetails(1/4, "Q1");
-            let Q2_info = getQuartileDetails(2/4, "Q2"); // Trung vị
+            let Q2_info = getQuartileDetails(2/4, "Q2");
             let Q3_info = getQuartileDetails(3/4, "Q3");
             let IQR = Q3_info.value - Q1_info.value;
 
@@ -343,7 +387,7 @@
                 if(data.length === 0) return alert("Vui lòng nhập đầy đủ số liệu vào bảng!");
                 
                 const stats = calculateStats(data);
-                if(!stats) return alert("Dữ liệu nhập vào không hợp lệ (Tần số đều bằng 0). Vui lòng kiểm tra lại!");
+                if(!stats) return alert("Dữ liệu nhập vào không hợp lệ. Vui lòng kiểm tra lại!");
 
                 generateSolutionHTML(data, stats);
                 card.classList.remove('hidden');
@@ -401,13 +445,9 @@
             }
         }
 
-        // ===================================================================
-        // XUẤT LỜI GIẢI CHI TIẾT THEO CHUẨN SƯ PHẠM SGK KẾT NỐI TRI THỨC 12
-        // ===================================================================
         function generateSolutionHTML(data, stats) {
             const solutionDiv = document.getElementById('solutionContent');
             
-            // 1. Bảng số liệu có giá trị đại diện và tần số tích lũy
             let tableHTML = `
             <div class="overflow-x-auto my-6 flex justify-center">
                 <table class="min-w-full md:min-w-[85%] text-center border-collapse border border-emerald-300 shadow-sm">
@@ -439,14 +479,12 @@
             </div>`;
 
             let htmlString = `
-                <!-- Phần 1: Bảng dữ liệu -->
                 <div class="mb-10">
                     <h3 class="text-2xl font-bold text-emerald-800 mb-3">1. Bảng số liệu có giá trị đại diện và tần số</h3>
                     <p class="mb-2 text-lg">Giá trị đại diện của nhóm $[a_i; a_{i+1})$ được tính theo công thức: $x_i = \\frac{a_i + a_{i+1}}{2}$.</p>
                     ${tableHTML}
                 </div>
 
-                <!-- Phần 2: Số trung bình -->
                 <div class="mb-10">
                     <h3 class="text-2xl font-bold text-emerald-800 mb-3">2. Số trung bình</h3>
                     <p class="mb-3 text-lg">Số trung bình của mẫu số liệu ghép nhóm là:</p>
@@ -455,7 +493,6 @@
                     </div>
                 </div>
 
-                <!-- Phần 3: Khoảng biến thiên R (Theo đúng SGK KNTT 12 - Bảng 3.1) -->
                 <div class="mb-10">
                     <h3 class="text-2xl font-bold text-emerald-800 mb-3">3. Khoảng biến thiên</h3>
                     <p class="mb-2 text-lg">Dựa vào bảng số liệu, xét mẫu số liệu ghép nhóm gồm $k = ${stats.k_thuc_te}$ nhóm (tính từ nhóm đầu tiên đến nhóm cuối cùng có tần số lớn hơn 0) với các tần số $m_1 = ${stats.m1} > 0$, $m_k = ${stats.mk} > 0$.</p>
@@ -465,13 +502,11 @@
                     </div>
                 </div>
 
-                <!-- Phần 4: Tứ phân vị và Khoảng tứ phân vị -->
                 <div class="mb-10">
                     <h3 class="text-2xl font-bold text-emerald-800 mb-5">4. Tứ phân vị và Khoảng tứ phân vị</h3>
                     <p class="mb-5 font-semibold text-xl text-emerald-700 bg-emerald-50 inline-block px-4 py-2 rounded">Cỡ mẫu $n = ${stats.n}$</p>
                     
                     <div class="space-y-8">
-                        <!-- Tứ phân vị thứ nhất Q1 -->
                         <div class="pl-5 border-l-4 border-emerald-400">
                             <p class="font-bold text-gray-800 text-xl mb-2">🔹 Tứ phân vị thứ nhất ($Q_1$):</p>
                             <p class="text-lg mb-2">Ta có $\\frac{n}{4} = \\frac{${stats.n}}{4} = ${formatNum(stats.Q1_info.target)}$.</p>
@@ -488,7 +523,6 @@
                             </div>
                         </div>
                         
-                        <!-- Tứ phân vị thứ hai Q2 (Trung vị) -->
                         <div class="pl-5 border-l-4 border-emerald-400">
                             <p class="font-bold text-gray-800 text-xl mb-2">🔹 Tứ phân vị thứ hai / Trung vị ($Q_2$):</p>
                             <p class="text-lg mb-2">Ta có $\\frac{n}{2} = \\frac{${stats.n}}{2} = ${formatNum(stats.Q2_info.target)}$.</p>
@@ -505,7 +539,6 @@
                             </div>
                         </div>
                         
-                        <!-- Tứ phân vị thứ ba Q3 -->
                         <div class="pl-5 border-l-4 border-emerald-400">
                             <p class="font-bold text-gray-800 text-xl mb-2">🔹 Tứ phân vị thứ ba ($Q_3$):</p>
                             <p class="text-lg mb-2">Ta có $\\frac{3n}{4} = \\frac{3 \\times ${stats.n}}{4} = ${formatNum(stats.Q3_info.target)}$.</p>
@@ -522,7 +555,6 @@
                             </div>
                         </div>
                         
-                        <!-- Khoảng tứ phân vị Delta Q -->
                         <div class="pl-5 border-l-4 border-orange-400 bg-orange-50 p-5 rounded-lg shadow-sm mt-4">
                             <p class="font-bold text-gray-800 text-xl mb-3">🔸 Khoảng tứ phân vị ($\\Delta_Q$):</p>
                             <div class="math-scroll">
@@ -532,7 +564,6 @@
                     </div>
                 </div>
 
-                <!-- Phần 5: Giá trị ngoại lệ -->
                 <div class="mb-10">
                     <h3 class="text-2xl font-bold text-emerald-800 mb-3">5. Giá trị ngoại lệ (Nếu có)</h3>
                     <p class="mb-3 text-lg">Các giá trị ngoại lệ của mẫu số liệu (nếu có) nằm ngoài khoảng:</p>
@@ -542,7 +573,6 @@
                     <p class="italic text-gray-600 text-lg">👉 (Các giá trị nhỏ hơn ${formatNum(stats.lowerBound)} hoặc lớn hơn ${formatNum(stats.upperBound)} được xem là giá trị ngoại lệ bất thường).</p>
                 </div>
 
-                <!-- Phần 6: Phương sai và Độ lệch chuẩn -->
                 <div class="mb-4">
                     <h3 class="text-2xl font-bold text-emerald-800 mb-6">6. Phương sai và Độ lệch chuẩn</h3>
                     
@@ -574,9 +604,6 @@
             });
         }
 
-        // ===================================================================
-        // VẼ ĐỒ THỊ CHART.JS (HISTOGRAM)
-        // ===================================================================
         let histogramInstance = null;
         function drawChartLogic(data) {
             const labels = data.map(d => `[${d.a}; ${d.b})`);
@@ -618,9 +645,6 @@
             });
         }
 
-        // ===================================================================
-        // VẼ BOX PLOT (HTML5 CANVAS)
-        // ===================================================================
         function drawBoxplotLogic(data) {
             const stats = calculateStats(data);
             const canvas = document.getElementById('boxplotCanvas');
@@ -652,19 +676,16 @@
             ctx.lineWidth = 4;
             ctx.strokeStyle = "#4b5563"; 
             
-            // Vẽ râu
             ctx.beginPath();
             ctx.moveTo(xMin, yCenter); ctx.lineTo(xQ1, yCenter);
             ctx.moveTo(xQ3, yCenter); ctx.lineTo(xMax, yCenter);
             ctx.stroke();
 
-            // Vẽ Box
             const boxHeight = 100;
             ctx.fillStyle = "rgba(249, 115, 22, 0.5)"; 
             ctx.fillRect(xQ1, yCenter - (boxHeight/2), xQ3 - xQ1, boxHeight);
             ctx.strokeRect(xQ1, yCenter - (boxHeight/2), xQ3 - xQ1, boxHeight);
 
-            // Vẽ chặn đầu
             function drawVertical(x, h, color, weight) {
                 ctx.beginPath(); ctx.lineWidth = weight; ctx.strokeStyle = color; 
                 ctx.moveTo(x, yCenter - h); ctx.lineTo(x, yCenter + h); ctx.stroke();
@@ -673,7 +694,6 @@
             drawVertical(xMax, boxHeight/2.5, "#4b5563", 4); 
             drawVertical(xQ2, boxHeight/2, "#dc2626", 5);  
 
-            // Vẽ chữ
             ctx.fillStyle = "#1f2937";
             ctx.font = "bold 16px Arial";
             ctx.textAlign = "center";
